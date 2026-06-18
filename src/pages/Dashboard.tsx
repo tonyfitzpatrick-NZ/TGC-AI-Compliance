@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Link } from 'react-router-dom';
-import { Upload, Plus, Building2 } from 'lucide-react';
+import { Plus, Building2 } from 'lucide-react';
 
 const Dashboard = () => {
   const [projects, setProjects] = useState<any[]>([]);
