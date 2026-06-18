@@ -7,6 +7,11 @@ import UploadForm from '../components/UploadForm';
 const ProjectDetail: React.FC = () => {
   const { id } = useParams();
 
+  const handleUploadComplete = () => {
+    // Refresh documents or trigger AI review here
+    console.log('Upload complete for project:', id);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -23,7 +28,7 @@ const ProjectDetail: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* PDF Viewer & Upload */}
           <div className="lg:col-span-2 space-y-6">
-            <UploadForm projectId={id!} />
+            <UploadForm projectId={id!} onUploadComplete={handleUploadComplete} />
             <PDFViewer projectId={id!} />
           </div>
 
