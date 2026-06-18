@@ -1,6 +1,8 @@
 import React from 'react';
 
-const PDFViewer: React.FC<{ projectId?: string }> = ({ projectId }) => {
+const PDFViewer: React.FC<{ projectId: string }> = ({ projectId }) => {
+  // Use projectId for future PDF loading logic
+  console.log('Loading PDF for project:', projectId);
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-6">
