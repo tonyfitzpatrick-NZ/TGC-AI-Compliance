@@ -1,5 +1,4 @@
 import React from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'; // Note: You may need to install react-beautiful-dnd or use a simpler version
 
 const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
   const columns = ['Open', 'In Progress', 'Pending', 'Approved', 'Closed', 'Rejected'];

@@ -6,7 +6,7 @@ import { Upload } from 'lucide-react';
 
 interface UploadFormProps {
   projectId: string;
-  onUploadComplete: () => void;
+  onUploadComplete?: () => void;
 }
 
 const UploadForm = ({ projectId, onUploadComplete }: UploadFormProps) => {
@@ -38,7 +38,7 @@ const UploadForm = ({ projectId, onUploadComplete }: UploadFormProps) => {
     }
 
     setUploading(false);
-    onUploadComplete();
+    onUploadComplete?.();
     alert('Files uploaded successfully!');
   };
 
