@@ -1,6 +1,6 @@
 import React from 'react';
 
-const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
+const TaskKanban: React.FC = () => {
   const columns = ['Open', 'In Progress', 'Pending', 'Approved', 'Closed', 'Rejected'];
 
   return (
