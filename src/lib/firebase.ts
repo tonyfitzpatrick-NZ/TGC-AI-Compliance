@@ -3,8 +3,9 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
+// src/lib/firebase.ts
 const firebaseConfig = {
-  apiKey: "AIzaSyA373nXfUnMyFo_mC9dZ0n3FgsFKZlC4Fs",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "tgc-ai-compliance.firebaseapp.com",
   projectId: "tgc-ai-compliance",
   storageBucket: "tgc-ai-compliance.firebasestorage.app",
