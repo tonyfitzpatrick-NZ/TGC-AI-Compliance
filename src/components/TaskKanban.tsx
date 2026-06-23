@@ -21,7 +21,7 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
 
   const columns = ['Open', 'In Progress', 'Pending', 'Approved', 'Closed'];
 
-  // Real-time task listener
+  // Real-time listener
   useEffect(() => {
     if (!projectId) return;
 
@@ -31,35 +31,28 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
       setTasks(fetched);
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, [projectId]);
 
-  // Update task status (for drag & drop + dropdown)
   const updateStatus = async (taskId: string, newStatus: string) => {
     await updateDoc(doc(db, 'tasks', taskId), { status: newStatus });
   };
 
-  // Save edited task
   const saveTask = async () => {
     if (!editingTask) return;
-
     await updateDoc(doc(db, 'tasks', editingTask.id), {
       title: editForm.title.trim(),
       description: editForm.description.trim(),
       dueDate: editForm.dueDate || null,
     });
-
     setEditingTask(null);
   };
 
-  // Delete task
   const deleteTask = async (taskId: string) => {
     if (!window.confirm('Delete this task?')) return;
     await deleteDoc(doc(db, 'tasks', taskId));
   };
 
-  // Start editing a task
   const startEditing = (task: Task) => {
     setEditingTask(task);
     setEditForm({
@@ -73,9 +66,7 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData('text/plain', taskId);
   };
-
   const handleDragOver = (e: React.DragEvent) => e.preventDefault();
-
   const handleDrop = (e: React.DragEvent, newStatus: string) => {
     e.preventDefault();
     const taskId = e.dataTransfer.getData('text/plain');
@@ -100,20 +91,22 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
           return (
             <div
               key={status}
-              className="bg-gray-50 rounded-xl p-4 min-h-[520px]"
+              className="bg-gray-50 rounded-2xl p-4 min-h-[560px]"
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, status)}
             >
-              <div className="flex items-center justify-between mb-4 sticky top-0 bg-gray-50 py-2 z-10">
-                <span className="font-semibold text-gray-800">{status}</span>
-                <span className="text-xs bg-white px-2.5 py-1 rounded-full border text-gray-600">
+              {/* Column Header */}
+              <div className="flex items-center justify-between mb-4 px-1">
+                <span className="font-semibold text-gray-800 text-lg">{status}</span>
+                <span className="text-xs font-medium bg-white px-3 py-1 rounded-full border text-gray-600">
                   {columnTasks.length}
                 </span>
               </div>
 
+              {/* Tasks */}
               <div className="space-y-3">
                 {columnTasks.length === 0 ? (
-                  <div className="text-center py-8 text-gray-400 border border-dashed border-gray-300 rounded-xl">
+                  <div className="h-32 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl text-gray-400 text-sm">
                     Drop tasks here
                   </div>
                 ) : (
@@ -122,46 +115,46 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
                       key={task.id}
                       draggable
                       onDragStart={(e) => handleDragStart(e, task.id)}
-                      className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm hover:shadow transition group"
+                      className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition group"
                     >
                       {editingTask?.id === task.id ? (
-                        // Edit Mode
+                        // === EDIT MODE ===
                         <div className="space-y-3">
                           <input
                             type="text"
                             value={editForm.title}
                             onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                            className="w-full border border-blue-400 rounded-lg px-3 py-2 text-sm font-medium"
+                            className="w-full border border-blue-400 focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm font-medium"
                             placeholder="Task title"
                           />
                           <textarea
                             value={editForm.description}
                             onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm h-20 resize-y"
+                            className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm h-24 resize-y"
                             placeholder="Description (optional)"
                           />
-                          <input
-                            type="date"
-                            value={editForm.dueDate}
-                            onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
-                            className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                          />
-                          <div className="flex gap-2 pt-1">
-                            <button onClick={saveTask} className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700">Save</button>
-                            <button onClick={() => setEditingTask(null)} className="flex-1 bg-gray-200 py-2 rounded-lg text-sm font-medium hover:bg-gray-300">Cancel</button>
+                          <div className="flex gap-3">
+                            <input
+                              type="date"
+                              value={editForm.dueDate}
+                              onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
+                              className="flex-1 border border-gray-300 rounded-xl px-4 py-2 text-sm"
+                            />
+                            <button onClick={saveTask} className="px-5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">Save</button>
+                            <button onClick={() => setEditingTask(null)} className="px-5 bg-gray-200 rounded-xl text-sm font-medium hover:bg-gray-300">Cancel</button>
                           </div>
                         </div>
                       ) : (
-                        // View Mode
+                        // === VIEW MODE ===
                         <>
-                          <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-semibold text-gray-900 pr-2 leading-snug">{task.title}</h4>
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                              <button onClick={() => startEditing(task)} className="p-1.5 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50">
-                                <Edit2 size={15} />
+                          <div className="flex justify-between items-start gap-2 mb-2">
+                            <h4 className="font-semibold text-gray-900 leading-snug pr-2">{task.title}</h4>
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
+                              <button onClick={() => startEditing(task)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg">
+                                <Edit2 size={16} />
                               </button>
-                              <button onClick={() => deleteTask(task.id)} className="p-1.5 text-gray-400 hover:text-red-600 rounded hover:bg-red-50">
-                                <Trash2 size={15} />
+                              <button onClick={() => deleteTask(task.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
+                                <Trash2 size={16} />
                               </button>
                             </div>
                           </div>
@@ -170,9 +163,9 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
                             <p className="text-sm text-gray-600 mb-3 whitespace-pre-wrap">{task.description}</p>
                           )}
 
-                          <div className="flex items-center justify-between text-xs mt-3">
-                            <div className="flex items-center gap-2">
-                              <span className={`px-2.5 py-1 rounded-full font-medium ${
+                          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className={`px-3 py-1 rounded-full font-medium ${
                                 task.priority === 'high' ? 'bg-red-100 text-red-700' :
                                 task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
                               }`}>
@@ -180,10 +173,10 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
                               </span>
 
                               {task.dueDate && (
-                                <span className={`flex items-center gap-1 ${isOverdue(task.dueDate) ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
-                                  <Calendar size={13} />
+                                <span className={`flex items-center gap-1.5 ${isOverdue(task.dueDate) ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                                  <Calendar size={14} />
                                   {new Date(task.dueDate).toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' })}
-                                  {isOverdue(task.dueDate) && <AlertTriangle size={13} />}
+                                  {isOverdue(task.dueDate) && <AlertTriangle size={14} />}
                                 </span>
                               )}
                             </div>
@@ -191,7 +184,7 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
                             <select
                               value={task.status}
                               onChange={(e) => updateStatus(task.id, e.target.value)}
-                              className="text-xs border border-gray-300 rounded px-2 py-1 bg-white"
+                              className="text-xs border border-gray-300 rounded-lg px-2.5 py-1 bg-white focus:outline-none"
                             >
                               {columns.map(col => <option key={col} value={col}>{col}</option>)}
                             </select>
