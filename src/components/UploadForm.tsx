@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, UploadTask, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc } from 'firebase/firestore';
 import { storage, db } from '../lib/firebase';
 import { Upload, X } from 'lucide-react';
@@ -13,6 +13,7 @@ const UploadForm = ({ projectId, onUploadComplete }: UploadFormProps) => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentFile, setCurrentFile] = useState('');
+  const [uploadTask, setUploadTask] = useState<UploadTask | null>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -26,46 +27,53 @@ const UploadForm = ({ projectId, onUploadComplete }: UploadFormProps) => {
       setCurrentFile(file.name);
 
       const storageRef = ref(storage, `projects/${projectId}/${file.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      const task = uploadBytesResumable(storageRef, file);
+      setUploadTask(task);
 
-      // Track upload progress
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const progressPercent = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          setProgress(Math.round(progressPercent));
-        },
-        (error) => {
-          console.error('Upload error:', error);
-        },
-        async () => {
-          // Upload complete - get download URL
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-
-          // Save metadata to Firestore
-          await addDoc(collection(db, 'documents'), {
-            projectId,
-            fileName: file.name,
-            url: downloadURL,
-            size: file.size,
-            uploadedAt: new Date(),
-            status: 'uploaded'
-          });
-        }
-      );
-
-      // Wait for this file to finish before moving to the next
-      await new Promise((resolve) => {
-        uploadTask.on('state_changed', null, null, resolve);
+      // Progress tracking
+      task.on('state_changed', (snapshot) => {
+        const progressPercent = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        setProgress(Math.round(progressPercent));
       });
+
+      try {
+        await task;
+        const downloadURL = await getDownloadURL(task.snapshot.ref);
+
+        await addDoc(collection(db, 'documents'), {
+          projectId,
+          fileName: file.name,
+          url: downloadURL,
+          size: file.size,
+          uploadedAt: new Date(),
+          status: 'uploaded'
+        });
+      } catch (error: any) {
+        if (error.code === 'storage/canceled') {
+          console.log('Upload canceled by user');
+        } else {
+          console.error('Upload error:', error);
+        }
+      }
     }
 
     setUploading(false);
     setProgress(0);
     setCurrentFile('');
-    
+    setUploadTask(null);
+
     if (onUploadComplete) onUploadComplete();
     alert(`${files.length} file(s) uploaded successfully!`);
+  };
+
+  const cancelUpload = () => {
+    if (uploadTask) {
+      uploadTask.cancel();
+      setUploading(false);
+      setProgress(0);
+      setCurrentFile('');
+      setUploadTask(null);
+    }
   };
 
   return (
@@ -89,23 +97,32 @@ const UploadForm = ({ projectId, onUploadComplete }: UploadFormProps) => {
         <p className="text-xs text-gray-500 mt-4">Supports multi-page consent drawings</p>
       </div>
 
-      {/* Upload Progress Bar */}
+      {/* Upload Progress */}
       {uploading && (
         <div className="mt-6 p-4 bg-gray-50 rounded-xl border">
           <div className="flex justify-between items-center mb-2">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
-              <span className="text-sm font-medium text-gray-700">Uploading {currentFile}</span>
+              <span className="text-sm font-medium text-gray-700 truncate max-w-[200px]">
+                Uploading {currentFile}
+              </span>
             </div>
             <span className="text-sm font-medium text-blue-600">{progress}%</span>
           </div>
-          
-          <div className="w-full bg-gray-200 rounded-full h-2.5">
+
+          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-3">
             <div 
               className="bg-blue-600 h-2.5 rounded-full transition-all duration-300" 
               style={{ width: `${progress}%` }}
             />
           </div>
+
+          <button
+            onClick={cancelUpload}
+            className="flex items-center gap-1 text-sm text-red-600 hover:text-red-700"
+          >
+            <X size={16} /> Cancel Upload
+          </button>
         </div>
       )}
     </div>
