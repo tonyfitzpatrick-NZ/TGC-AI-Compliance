@@ -29,7 +29,6 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
 
   const columns = ['Open', 'In Progress', 'Pending', 'Approved', 'Closed'];
 
-  // Real-time listener
   useEffect(() => {
     if (!projectId) return;
 
@@ -48,7 +47,6 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
 
   const saveTask = async () => {
     if (!editingTask) return;
-
     await updateDoc(doc(db, 'tasks', editingTask.id), {
       title: editForm.title.trim(),
       description: editForm.description.trim(),
@@ -72,7 +70,6 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
     setAddingCommentTo(null);
   };
 
-  // Add comment to task
   const addComment = async (taskId: string) => {
     if (!newComment.trim()) return;
 
@@ -89,7 +86,6 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
     setAddingCommentTo(null);
   };
 
-  // Drag & Drop
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData('text/plain', taskId);
   };
@@ -118,11 +114,12 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
           return (
             <div
               key={status}
-              className="bg-gray-50 rounded-2xl p-5 min-h-[620px]"
+              className="bg-gray-50 rounded-2xl p-5 min-h-[640px]"
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, status)}
             >
-              <div className="flex items-center justify-between mb-5">
+              {/* Column Header */}
+              <div className="flex items-center justify-between mb-5 px-1">
                 <span className="font-semibold text-xl text-gray-800">{status}</span>
                 <span className="text-sm font-medium bg-white px-3.5 py-1 rounded-full border text-gray-600">
                   {columnTasks.length}
@@ -164,8 +161,8 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
                             onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
                             className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm"
                           />
-                          <div className="flex gap-3">
-                            <button onClick={saveTask} className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-medium hover:bg-blue-700">Save</button>
+                          <div className="flex gap-3 pt-2">
+                            <button onClick={saveTask} className="flex-1 bg-blue-600 text-white py-2.5 rounded-xl font-medium hover:bg-blue-700">Save Changes</button>
                             <button onClick={() => setEditingTask(null)} className="flex-1 bg-gray-200 py-2.5 rounded-xl font-medium hover:bg-gray-300">Cancel</button>
                           </div>
                         </div>
@@ -188,55 +185,42 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
                             <p className="text-sm text-gray-600 mb-4 whitespace-pre-wrap leading-relaxed break-words">{task.description}</p>
                           )}
 
-                          {/* Comments Section */}
+                          {/* Comments */}
                           <div className="mb-4">
-                            {(task.comments && task.comments.length > 0) && (
+                            {task.comments && task.comments.length > 0 && (
                               <div className="mb-3 space-y-2">
                                 {task.comments.map((comment, index) => (
                                   <div key={index} className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm">
                                     <p className="text-gray-700 whitespace-pre-wrap">{comment.text}</p>
                                     <p className="text-[10px] text-gray-400 mt-1">
-                                      {comment.createdAt?.toDate?.().toLocaleDateString('en-NZ') || 'Just now'}
+                                      {comment.createdAt?.toDate?.().toLocaleDateString('en-NZ') || ''}
                                     </p>
                                   </div>
                                 ))}
                               </div>
                             )}
 
-                            {/* Add Comment */}
+                            {/* Add Note Input */}
                             {addingCommentTo === task.id ? (
                               <div className="flex gap-2">
                                 <input
                                   type="text"
                                   value={newComment}
                                   onChange={(e) => setNewComment(e.target.value)}
-                                  placeholder="Add a note..."
-                                  className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm"
+                                  placeholder="Add a note or comment..."
+                                  className="flex-1 border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-blue-400"
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') addComment(task.id);
-                                    if (e.key === 'Escape') {
-                                      setAddingCommentTo(null);
-                                      setNewComment('');
-                                    }
+                                    if (e.key === 'Escape') { setAddingCommentTo(null); setNewComment(''); }
                                   }}
                                 />
-                                <button 
-                                  onClick={() => addComment(task.id)} 
-                                  className="px-4 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"
-                                >
-                                  Add
-                                </button>
-                                <button 
-                                  onClick={() => { setAddingCommentTo(null); setNewComment(''); }} 
-                                  className="px-4 bg-gray-200 rounded-xl text-sm font-medium hover:bg-gray-300"
-                                >
-                                  Cancel
-                                </button>
+                                <button onClick={() => addComment(task.id)} className="px-4 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">Add</button>
+                                <button onClick={() => { setAddingCommentTo(null); setNewComment(''); }} className="px-4 bg-gray-200 rounded-xl text-sm font-medium hover:bg-gray-300">Cancel</button>
                               </div>
                             ) : (
                               <button 
                                 onClick={() => setAddingCommentTo(task.id)} 
-                                className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 mt-1"
+                                className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700"
                               >
                                 <MessageCircle size={14} /> Add note
                               </button>
