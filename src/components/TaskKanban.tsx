@@ -21,6 +21,7 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
 
   const columns = ['Open', 'In Progress', 'Pending', 'Approved', 'Closed'];
 
+  // Real-time listener
   useEffect(() => {
     if (!projectId) return;
 
@@ -39,6 +40,7 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
 
   const saveTask = async () => {
     if (!editingTask) return;
+
     await updateDoc(doc(db, 'tasks', editingTask.id), {
       title: editForm.title.trim(),
       description: editForm.description.trim(),
@@ -90,12 +92,12 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
           return (
             <div
               key={status}
-              className="bg-gray-50 rounded-2xl p-5 min-h-[580px]"
+              className="bg-gray-50 rounded-2xl p-5 min-h-[600px]"
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, status)}
             >
-              {/* Header */}
-              <div className="flex items-center justify-between mb-5">
+              {/* Column Header */}
+              <div className="flex items-center justify-between mb-5 px-1">
                 <span className="font-semibold text-xl text-gray-800">{status}</span>
                 <span className="text-sm font-medium bg-white px-3.5 py-1 rounded-full border text-gray-600">
                   {columnTasks.length}
@@ -105,7 +107,7 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
               {/* Tasks */}
               <div className="space-y-4">
                 {columnTasks.length === 0 ? (
-                  <div className="h-40 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl text-gray-400">
+                  <div className="h-40 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl text-gray-400 text-sm">
                     Drop tasks here
                   </div>
                 ) : (
@@ -114,23 +116,23 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
                       key={task.id}
                       draggable
                       onDragStart={(e) => handleDragStart(e, task.id)}
-                      className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow transition group"
+                      className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition group"
                     >
                       {editingTask?.id === task.id ? (
-                        // Edit Mode
+                        // === EDIT MODE ===
                         <div className="space-y-4">
                           <input
                             type="text"
                             value={editForm.title}
                             onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                            className="w-full border border-blue-400 rounded-xl px-4 py-3 text-base font-medium"
+                            className="w-full border border-blue-400 focus:border-blue-500 rounded-xl px-4 py-3 text-base font-medium"
                             placeholder="Task title"
                           />
                           <textarea
                             value={editForm.description}
                             onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
                             className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm h-28 resize-y"
-                            placeholder="Description"
+                            placeholder="Description (optional)"
                           />
                           <div className="flex gap-3">
                             <input
@@ -144,7 +146,7 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
                           </div>
                         </div>
                       ) : (
-                        // View Mode
+                        // === VIEW MODE ===
                         <>
                           <div className="flex justify-between items-start gap-3 mb-3">
                             <h4 className="font-semibold text-gray-900 text-[15px] leading-snug pr-2">{task.title}</h4>
