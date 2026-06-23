@@ -11,7 +11,7 @@ const ProjectDetail: React.FC = () => {
   const [project, setProject] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch project details
+  // Fetch project details from Firestore
   useEffect(() => {
     const fetchProject = async () => {
       if (!id) return;
@@ -35,19 +35,20 @@ const ProjectDetail: React.FC = () => {
 
   const handleUploadComplete = () => {
     console.log('Upload complete for project:', id);
-    // You can later add logic to refresh uploaded documents list
   };
 
-  // AI Compliance Review - Generates and saves realistic tasks
+  // AI Compliance Review with due dates
   const runAIReview = async () => {
     if (!id) return;
 
     const confirmRun = window.confirm(
-      "Run AI Compliance Review?\n\nThis will generate realistic tasks based on common architectural issues."
+      "Run AI Compliance Review?\n\nThis will generate realistic tasks with suggested due dates."
     );
     if (!confirmRun) return;
 
     try {
+      const today = new Date();
+
       const generatedTasks = [
         {
           title: "Add NZS 3604 foundation bracing details",
@@ -55,6 +56,7 @@ const ProjectDetail: React.FC = () => {
           status: "Open",
           priority: "high",
           projectId: id,
+          dueDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           createdAt: new Date(),
         },
         {
@@ -63,6 +65,7 @@ const ProjectDetail: React.FC = () => {
           status: "Open",
           priority: "high",
           projectId: id,
+          dueDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           createdAt: new Date(),
         },
         {
@@ -71,6 +74,7 @@ const ProjectDetail: React.FC = () => {
           status: "In Progress",
           priority: "medium",
           projectId: id,
+          dueDate: new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           createdAt: new Date(),
         },
         {
@@ -79,6 +83,7 @@ const ProjectDetail: React.FC = () => {
           status: "Open",
           priority: "high",
           projectId: id,
+          dueDate: new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           createdAt: new Date(),
         },
         {
@@ -87,6 +92,7 @@ const ProjectDetail: React.FC = () => {
           status: "Pending",
           priority: "medium",
           projectId: id,
+          dueDate: new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           createdAt: new Date(),
         },
         {
@@ -95,21 +101,22 @@ const ProjectDetail: React.FC = () => {
           status: "Open",
           priority: "low",
           projectId: id,
+          dueDate: new Date(today.getTime() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           createdAt: new Date(),
         },
       ];
 
-      // Save all generated tasks to Firestore
+      // Save tasks to Firestore
       for (const task of generatedTasks) {
         await addDoc(collection(db, 'tasks'), task);
       }
 
-      alert("✅ AI Compliance Review complete!\n\nNew tasks have been added to the Kanban board.");
+      alert("✅ AI Compliance Review complete!\n\nNew tasks with suggested due dates have been added to the Kanban.");
       window.location.reload();
 
     } catch (error) {
       console.error("AI Review failed:", error);
-      alert("Something went wrong while running the AI review. Please try again.");
+      alert("Something went wrong while running the AI review.");
     }
   };
 
@@ -151,7 +158,7 @@ const ProjectDetail: React.FC = () => {
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Upload & PDF Viewer */}
+          {/* Upload + PDF Viewer */}
           <div className="lg:col-span-2 space-y-6">
             <UploadForm 
               projectId={id!} 
@@ -160,7 +167,7 @@ const ProjectDetail: React.FC = () => {
             <PDFViewer projectId={id!} />
           </div>
 
-          {/* Right Column - Task Kanban */}
+          {/* Task Kanban */}
           <div>
             <TaskKanban projectId={id!} />
           </div>
