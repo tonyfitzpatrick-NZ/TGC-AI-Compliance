@@ -58,28 +58,119 @@ const ProjectDetail: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const runAIReview = async () => {
-    if (!id || !window.confirm("Run AI Compliance Review?")) return;
+const runAIReview = async () => {
+  if (!id || !window.confirm("Run detailed AI Compliance Review?")) return;
 
-    const today = new Date();
-    const tasks = [
-      { title: "Add NZS 3604 foundation bracing details", priority: "high", dueDate: new Date(today.getTime() + 7 * 86400000).toISOString().split('T')[0] },
-      { title: "Confirm E1 surface water drainage sizing", priority: "high", dueDate: new Date(today.getTime() + 7 * 86400000).toISOString().split('T')[0] },
-      { title: "Update cladding fixing schedule", priority: "medium", dueDate: new Date(today.getTime() + 14 * 86400000).toISOString().split('T')[0] },
-      { title: "Add fire-rated wall details between units", priority: "high", dueDate: new Date(today.getTime() + 7 * 86400000).toISOString().split('T')[0] },
-    ];
+  const today = new Date();
 
-    for (const task of tasks) {
-      await addDoc(collection(db, 'tasks'), {
-        ...task,
-        status: "Open",
-        projectId: id,
-        createdAt: new Date(),
-      });
-    }
-    alert("AI Review complete!");
-    window.location.reload();
-  };
+  const generatedTasks = [
+    // === HIGH PRIORITY / STRUCTURAL ===
+    {
+      title: "Add NZS 3604 foundation bracing schedule & calculations",
+      description: "Foundation Plan is missing bracing layout and calculations per NZS 3604:2011. Required for Building Consent.",
+      status: "Open",
+      priority: "high",
+      projectId: id,
+      dueDate: new Date(today.getTime() + 7 * 86400000).toISOString().split('T')[0],
+      createdAt: new Date(),
+    },
+    {
+      title: "Confirm floor joist & bearer sizing to NZS 3604",
+      description: "Check floor framing sizes and spans against NZS 3604 Table 7.1 and 7.2 for the proposed loads and spans.",
+      status: "Open",
+      priority: "high",
+      projectId: id,
+      dueDate: new Date(today.getTime() + 7 * 86400000).toISOString().split('T')[0],
+      createdAt: new Date(),
+    },
+
+    // === WEATHERTIGHTNESS (E2) ===
+    {
+      title: "Update cladding fixing details to E2/AS1",
+      description: "HardieFlex / fibre cement cladding fixing pattern and cavity details must comply with E2/AS1 Acceptable Solution.",
+      status: "Open",
+      priority: "high",
+      projectId: id,
+      dueDate: new Date(today.getTime() + 7 * 86400000).toISOString().split('T')[0],
+      createdAt: new Date(),
+    },
+    {
+      title: "Add window & door head flashing details",
+      description: "Window and door installations require compliant head flashings with 15° slope and hemmed edges per E2/AS1.",
+      status: "Open",
+      priority: "high",
+      projectId: id,
+      dueDate: new Date(today.getTime() + 7 * 86400000).toISOString().split('T')[0],
+      createdAt: new Date(),
+    },
+    {
+      title: "Confirm roof underlay and flashing details",
+      description: "Check roof underlay specification, lap details, and flashing design against E2/AS1 requirements.",
+      status: "Open",
+      priority: "high",
+      projectId: id,
+      dueDate: new Date(today.getTime() + 7 * 86400000).toISOString().split('T')[0],
+      createdAt: new Date(),
+    },
+
+    // === FIRE SAFETY ===
+    {
+      title: "Add fire-rated wall details between units (if multi-unit)",
+      description: "Fire separation between dwellings must achieve minimum FRL 60/60/60 with compliant fire-rated construction.",
+      status: "Open",
+      priority: "high",
+      projectId: id,
+      dueDate: new Date(today.getTime() + 7 * 86400000).toISOString().split('T')[0],
+      createdAt: new Date(),
+    },
+    {
+      title: "Confirm smoke alarm locations & specification",
+      description: "Smoke alarms must be installed in accordance with NZS 4514 and Building Code clause F7.",
+      status: "Open",
+      priority: "medium",
+      projectId: id,
+      dueDate: new Date(today.getTime() + 14 * 86400000).toISOString().split('T')[0],
+      createdAt: new Date(),
+    },
+
+    // === ACCESSIBILITY & OTHER ===
+    {
+      title: "Check accessibility requirements (if applicable)",
+      description: "Confirm compliance with NZS 4121 and Building Code D1/AS1 for accessible routes and facilities.",
+      status: "Pending",
+      priority: "medium",
+      projectId: id,
+      dueDate: new Date(today.getTime() + 14 * 86400000).toISOString().split('T')[0],
+      createdAt: new Date(),
+    },
+    {
+      title: "Verify recession plane & height in relation to boundary",
+      description: "Check all elevations against District Plan recession plane and height-to-boundary rules.",
+      status: "Open",
+      priority: "medium",
+      projectId: id,
+      dueDate: new Date(today.getTime() + 10 * 86400000).toISOString().split('T')[0],
+      createdAt: new Date(),
+    },
+    {
+      title: "Confirm minimum 450mm eaves on all elevations",
+      description: "E2/AS1 recommends minimum 450mm eaves overhang for weathertightness on most claddings.",
+      status: "Open",
+      priority: "medium",
+      projectId: id,
+      dueDate: new Date(today.getTime() + 14 * 86400000).toISOString().split('T')[0],
+      createdAt: new Date(),
+    },
+  ];
+
+  // Save all tasks to Firestore
+  for (const task of generatedTasks) {
+    await addDoc(collection(db, 'tasks'), task);
+  }
+
+  alert(`AI Compliance Review complete!\n\n${generatedTasks.length} tasks have been generated.`);
+  window.location.reload();
+};
 
   if (loading) return <div className="p-8">Loading project...</div>;
   if (!project) return <div className="p-8 text-red-500">Project not found.</div>;
