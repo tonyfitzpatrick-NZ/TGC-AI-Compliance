@@ -21,7 +21,6 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
 
   const columns = ['Open', 'In Progress', 'Pending', 'Approved', 'Closed'];
 
-  // Real-time listener
   useEffect(() => {
     if (!projectId) return;
 
@@ -84,29 +83,29 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
     <div className="bg-white rounded-2xl shadow-sm p-6">
       <h2 className="text-2xl font-semibold mb-6">Compliance Tasks</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
         {columns.map((status) => {
           const columnTasks = tasks.filter(t => t.status === status);
 
           return (
             <div
               key={status}
-              className="bg-gray-50 rounded-2xl p-4 min-h-[560px]"
+              className="bg-gray-50 rounded-2xl p-5 min-h-[580px]"
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, status)}
             >
-              {/* Column Header */}
-              <div className="flex items-center justify-between mb-4 px-1">
-                <span className="font-semibold text-gray-800 text-lg">{status}</span>
-                <span className="text-xs font-medium bg-white px-3 py-1 rounded-full border text-gray-600">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-5">
+                <span className="font-semibold text-xl text-gray-800">{status}</span>
+                <span className="text-sm font-medium bg-white px-3.5 py-1 rounded-full border text-gray-600">
                   {columnTasks.length}
                 </span>
               </div>
 
               {/* Tasks */}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {columnTasks.length === 0 ? (
-                  <div className="h-32 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl text-gray-400 text-sm">
+                  <div className="h-40 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-2xl text-gray-400">
                     Drop tasks here
                   </div>
                 ) : (
@@ -115,57 +114,57 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
                       key={task.id}
                       draggable
                       onDragStart={(e) => handleDragStart(e, task.id)}
-                      className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition group"
+                      className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow transition group"
                     >
                       {editingTask?.id === task.id ? (
-                        // === EDIT MODE ===
-                        <div className="space-y-3">
+                        // Edit Mode
+                        <div className="space-y-4">
                           <input
                             type="text"
                             value={editForm.title}
                             onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                            className="w-full border border-blue-400 focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm font-medium"
+                            className="w-full border border-blue-400 rounded-xl px-4 py-3 text-base font-medium"
                             placeholder="Task title"
                           />
                           <textarea
                             value={editForm.description}
                             onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                            className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm h-24 resize-y"
-                            placeholder="Description (optional)"
+                            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm h-28 resize-y"
+                            placeholder="Description"
                           />
                           <div className="flex gap-3">
                             <input
                               type="date"
                               value={editForm.dueDate}
                               onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
-                              className="flex-1 border border-gray-300 rounded-xl px-4 py-2 text-sm"
+                              className="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 text-sm"
                             />
-                            <button onClick={saveTask} className="px-5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">Save</button>
-                            <button onClick={() => setEditingTask(null)} className="px-5 bg-gray-200 rounded-xl text-sm font-medium hover:bg-gray-300">Cancel</button>
+                            <button onClick={saveTask} className="px-6 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700">Save</button>
+                            <button onClick={() => setEditingTask(null)} className="px-6 bg-gray-200 rounded-xl font-medium hover:bg-gray-300">Cancel</button>
                           </div>
                         </div>
                       ) : (
-                        // === VIEW MODE ===
+                        // View Mode
                         <>
-                          <div className="flex justify-between items-start gap-2 mb-2">
-                            <h4 className="font-semibold text-gray-900 leading-snug pr-2">{task.title}</h4>
+                          <div className="flex justify-between items-start gap-3 mb-3">
+                            <h4 className="font-semibold text-gray-900 text-[15px] leading-snug pr-2">{task.title}</h4>
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
-                              <button onClick={() => startEditing(task)} className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg">
-                                <Edit2 size={16} />
+                              <button onClick={() => startEditing(task)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl">
+                                <Edit2 size={17} />
                               </button>
-                              <button onClick={() => deleteTask(task.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg">
-                                <Trash2 size={16} />
+                              <button onClick={() => deleteTask(task.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl">
+                                <Trash2 size={17} />
                               </button>
                             </div>
                           </div>
 
                           {task.description && (
-                            <p className="text-sm text-gray-600 mb-3 whitespace-pre-wrap">{task.description}</p>
+                            <p className="text-sm text-gray-600 mb-4 whitespace-pre-wrap leading-relaxed">{task.description}</p>
                           )}
 
-                          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                            <div className="flex items-center gap-2 text-xs">
-                              <span className={`px-3 py-1 rounded-full font-medium ${
+                          <div className="flex items-center justify-between pt-3 border-t border-gray-100 text-xs">
+                            <div className="flex items-center gap-2.5">
+                              <span className={`px-3 py-1.5 rounded-full font-medium text-xs ${
                                 task.priority === 'high' ? 'bg-red-100 text-red-700' :
                                 task.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'
                               }`}>
@@ -173,10 +172,10 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
                               </span>
 
                               {task.dueDate && (
-                                <span className={`flex items-center gap-1.5 ${isOverdue(task.dueDate) ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
-                                  <Calendar size={14} />
+                                <span className={`flex items-center gap-1.5 ${isOverdue(task.dueDate) ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                                  <Calendar size={15} />
                                   {new Date(task.dueDate).toLocaleDateString('en-NZ', { month: 'short', day: 'numeric' })}
-                                  {isOverdue(task.dueDate) && <AlertTriangle size={14} />}
+                                  {isOverdue(task.dueDate) && <AlertTriangle size={15} />}
                                 </span>
                               )}
                             </div>
@@ -184,7 +183,7 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
                             <select
                               value={task.status}
                               onChange={(e) => updateStatus(task.id, e.target.value)}
-                              className="text-xs border border-gray-300 rounded-lg px-2.5 py-1 bg-white focus:outline-none"
+                              className="text-xs border border-gray-300 rounded-lg px-3 py-1.5 bg-white focus:outline-none"
                             >
                               {columns.map(col => <option key={col} value={col}>{col}</option>)}
                             </select>
