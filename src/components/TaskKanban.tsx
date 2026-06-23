@@ -92,12 +92,12 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
           return (
             <div
               key={status}
-              className="bg-gray-50 rounded-2xl p-5 min-h-[600px]"
+              className="bg-gray-50 rounded-2xl p-5 min-h-[620px]"
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, status)}
             >
               {/* Column Header */}
-              <div className="flex items-center justify-between mb-5 px-1">
+              <div className="flex items-center justify-between mb-5">
                 <span className="font-semibold text-xl text-gray-800">{status}</span>
                 <span className="text-sm font-medium bg-white px-3.5 py-1 rounded-full border text-gray-600">
                   {columnTasks.length}
@@ -119,37 +119,58 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
                       className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition group"
                     >
                       {editingTask?.id === task.id ? (
-                        // === EDIT MODE ===
+                        // === CLEAN EDIT MODE ===
                         <div className="space-y-4">
-                          <input
-                            type="text"
-                            value={editForm.title}
-                            onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                            className="w-full border border-blue-400 focus:border-blue-500 rounded-xl px-4 py-3 text-base font-medium"
-                            placeholder="Task title"
-                          />
-                          <textarea
-                            value={editForm.description}
-                            onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm h-28 resize-y"
-                            placeholder="Description (optional)"
-                          />
-                          <div className="flex gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Title</label>
+                            <input
+                              type="text"
+                              value={editForm.title}
+                              onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                              className="w-full border border-blue-400 focus:border-blue-500 rounded-xl px-4 py-2.5 text-base font-medium"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Description</label>
+                            <textarea
+                              value={editForm.description}
+                              onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                              className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm h-24 resize-y"
+                              placeholder="Optional description..."
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-medium text-gray-500 mb-1">Due Date</label>
                             <input
                               type="date"
                               value={editForm.dueDate}
                               onChange={(e) => setEditForm({ ...editForm, dueDate: e.target.value })}
-                              className="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 text-sm"
+                              className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm"
                             />
-                            <button onClick={saveTask} className="px-6 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700">Save</button>
-                            <button onClick={() => setEditingTask(null)} className="px-6 bg-gray-200 rounded-xl font-medium hover:bg-gray-300">Cancel</button>
+                          </div>
+
+                          <div className="flex gap-3 pt-2">
+                            <button 
+                              onClick={saveTask} 
+                              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-medium text-sm transition"
+                            >
+                              Save Changes
+                            </button>
+                            <button 
+                              onClick={() => setEditingTask(null)} 
+                              className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-2.5 rounded-xl font-medium text-sm transition"
+                            >
+                              Cancel
+                            </button>
                           </div>
                         </div>
                       ) : (
                         // === VIEW MODE ===
                         <>
                           <div className="flex justify-between items-start gap-3 mb-3">
-                            <h4 className="font-semibold text-gray-900 text-[15px] leading-snug pr-2">{task.title}</h4>
+                            <h4 className="font-semibold text-gray-900 text-[15px] leading-snug pr-2 break-words">{task.title}</h4>
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition flex-shrink-0">
                               <button onClick={() => startEditing(task)} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl">
                                 <Edit2 size={17} />
@@ -161,7 +182,7 @@ const TaskKanban: React.FC<{ projectId: string }> = ({ projectId }) => {
                           </div>
 
                           {task.description && (
-                            <p className="text-sm text-gray-600 mb-4 whitespace-pre-wrap leading-relaxed">{task.description}</p>
+                            <p className="text-sm text-gray-600 mb-4 whitespace-pre-wrap leading-relaxed break-words">{task.description}</p>
                           )}
 
                           <div className="flex items-center justify-between pt-3 border-t border-gray-100 text-xs">
