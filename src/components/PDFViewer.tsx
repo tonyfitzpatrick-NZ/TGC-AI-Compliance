@@ -1,178 +1,129 @@
 import React, { useEffect, useState } from 'react';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { useParams } from 'react-router-dom';
+import { doc, getDoc, collection, addDoc, query, where, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Document, Page, pdfjs } from 'react-pdf';
+import PDFViewer from '../components/PDFViewer';
+import TaskKanban from '../components/TaskKanban';
+import UploadForm from '../components/UploadForm';
 
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
-
-interface UploadedDocument {
-  id: string;
-  fileName: string;
-  url: string;
-}
-
-const PDFViewer: React.FC<{ projectId: string }> = ({ projectId }) => {
-  const [documents, setDocuments] = useState<UploadedDocument[]>([]);
-  const [selectedDoc, setSelectedDoc] = useState<UploadedDocument | null>(null);
-  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
-  const [numPages, setNumPages] = useState<number | null>(null);
-  const [pageNumber, setPageNumber] = useState(1);
-  const [scale, setScale] = useState(1.0);
-  const [rotation, setRotation] = useState(0);
+const ProjectDetail: React.FC = () => {
+  const { id } = useParams();
+  const [project, setProject] = useState<any>(null);
+  const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch list of uploaded documents
+  // Fetch project
   useEffect(() => {
-    if (!projectId) return;
-
-    const q = query(collection(db, 'documents'), where('projectId', '==', projectId));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as UploadedDocument[];
-      setDocuments(docs);
-
-      if (docs.length > 0 && !selectedDoc) {
-        const firstPdf = docs.find(d => d.fileName.toLowerCase().endsWith('.pdf'));
-        if (firstPdf) setSelectedDoc(firstPdf);
-      }
+    const fetchProject = async () => {
+      if (!id) return;
+      const docRef = doc(db, 'projects', id);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) setProject({ id: docSnap.id, ...docSnap.data() });
       setLoading(false);
-    });
+    };
+    fetchProject();
+  }, [id]);
 
-    return () => unsubscribe();
-  }, [projectId]);
-
-  // When selected document changes, fetch it as blob for reliable loading
+  // Fetch uploaded documents
   useEffect(() => {
-    const loadPdfBlob = async () => {
-      if (!selectedDoc?.url) {
-        setPdfBlobUrl(null);
-        return;
-      }
+    if (!id) return;
+    const q = query(collection(db, 'documents'), where('projectId', '==', id));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setDocuments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => unsubscribe();
+  }, [id]);
 
-      try {
-        const response = await fetch(selectedDoc.url);
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        setPdfBlobUrl(blobUrl);
-      } catch (error) {
-        console.error('Failed to load PDF blob:', error);
-        setPdfBlobUrl(null);
-      }
-    };
-
-    loadPdfBlob();
-
-    // Cleanup blob URL when component unmounts or selection changes
-    return () => {
-      if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
-    };
-  }, [selectedDoc]);
-
-  const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-    setNumPages(numPages);
-    setPageNumber(1);
+  const handleUploadComplete = () => {};
+  const deleteDocument = async (docId: string) => {
+    if (!window.confirm('Delete this file?')) return;
+    await deleteDoc(doc(db, 'documents', docId));
+  };
+  const viewDocument = (url: string) => window.open(url, '_blank');
+  const downloadDocument = (url: string, fileName: string) => {
+    const link = document.createElement('a');
+    link.href = url; link.download = fileName; document.body.appendChild(link); link.click(); document.body.removeChild(link);
   };
 
-  // Navigation
-  const goToPrevPage = () => setPageNumber(p => Math.max(1, p - 1));
-  const goToNextPage = () => setPageNumber(p => Math.min(numPages || 1, p + 1));
+  const runAIReview = async () => {
+    if (!id || !window.confirm("Run AI Compliance Review?")) return;
 
-  // Zoom
-  const zoomIn = () => setScale(s => Math.min(s + 0.2, 3.0));
-  const zoomOut = () => setScale(s => Math.max(s - 0.2, 0.5));
-  const resetZoom = () => setScale(1.0);
+    const today = new Date();
+    const tasks = [
+      { title: "Add NZS 3604 foundation bracing details", priority: "high", dueDate: new Date(today.getTime() + 7*86400000).toISOString().split('T')[0] },
+      { title: "Confirm E1 surface water drainage sizing", priority: "high", dueDate: new Date(today.getTime() + 7*86400000).toISOString().split('T')[0] },
+      { title: "Update cladding fixing schedule", priority: "medium", dueDate: new Date(today.getTime() + 14*86400000).toISOString().split('T')[0] },
+      { title: "Add fire-rated wall details between units", priority: "high", dueDate: new Date(today.getTime() + 7*86400000).toISOString().split('T')[0] },
+    ];
 
-  // Rotation
-  const rotateLeft = () => setRotation(r => (r - 90 + 360) % 360);
-  const rotateRight = () => setRotation(r => (r + 90) % 360);
-  const resetRotation = () => setRotation(0);
+    for (const task of tasks) {
+      await addDoc(collection(db, 'tasks'), { ...task, status: "Open", projectId: id, createdAt: new Date() });
+    }
+    alert("AI Review complete!");
+    window.location.reload();
+  };
 
-  if (loading) return <div className="p-6">Loading drawings...</div>;
-
-  if (documents.length === 0) {
-    return (
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <h2 className="text-xl font-semibold mb-4">Drawing Set Viewer</h2>
-        <div className="h-96 flex items-center justify-center border-2 border-dashed border-gray-300 rounded">
-          <p className="text-gray-500">No drawings uploaded yet</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="p-8">Loading project...</div>;
+  if (!project) return <div className="p-8 text-red-500">Project not found.</div>;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Drawing Set Viewer</h2>
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex justify-between items-start mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">{project.name}</h1>
+            {project.address && <p className="text-gray-500 mt-1">{project.address}</p>}
+          </div>
+          <button onClick={runAIReview} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium">
+            Run AI Compliance Review
+          </button>
+        </div>
 
-        <select
-          value={selectedDoc?.id || ''}
-          onChange={(e) => {
-            const doc = documents.find(d => d.id === e.target.value);
-            if (doc) {
-              setSelectedDoc(doc);
-              setPageNumber(1);
-              setScale(1.0);
-              setRotation(0);
-            }
-          }}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm"
-        >
-          {documents
-            .filter(d => d.fileName.toLowerCase().endsWith('.pdf'))
-            .map((doc) => (
-              <option key={doc.id} value={doc.id}>{doc.fileName}</option>
-            ))}
-        </select>
+        {/* Top Section: Upload + PDF Viewer side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
+          {/* Upload Form (narrower) */}
+          <div className="lg:col-span-2">
+            <UploadForm projectId={id!} onUploadComplete={handleUploadComplete} />
+          </div>
+
+          {/* PDF Viewer */}
+          <div className="lg:col-span-3">
+            <PDFViewer projectId={id!} />
+          </div>
+        </div>
+
+        {/* Uploaded Files List */}
+        {documents.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
+            <h3 className="font-semibold mb-4">Uploaded Drawings ({documents.length})</h3>
+            <div className="space-y-2">
+              {documents.map((docItem) => (
+                <div key={docItem.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                  <div>
+                    <p className="font-medium">{docItem.fileName}</p>
+                    <p className="text-xs text-gray-500">
+                      {docItem.uploadedAt?.toDate?.().toLocaleDateString() || 'Unknown date'}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => viewDocument(docItem.url)} className="px-4 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200">View</button>
+                    <button onClick={() => downloadDocument(docItem.url, docItem.fileName)} className="px-4 py-1.5 text-sm bg-gray-200 rounded-lg hover:bg-gray-300">Download</button>
+                    <button onClick={() => deleteDocument(docItem.id)} className="px-4 py-1.5 text-sm text-red-600 hover:bg-red-100 rounded-lg">Delete</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Task Kanban - Full Width at Bottom */}
+        <div>
+          <TaskKanban projectId={id!} />
+        </div>
       </div>
-
-      {selectedDoc && pdfBlobUrl ? (
-        <div className="border rounded-lg p-4 bg-gray-50">
-          {/* Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-            {/* Zoom */}
-            <div className="flex items-center gap-2">
-              <button onClick={zoomOut} className="px-3 py-1 bg-white border rounded hover:bg-gray-100">-</button>
-              <span className="text-sm w-14 text-center">{Math.round(scale * 100)}%</span>
-              <button onClick={zoomIn} className="px-3 py-1 bg-white border rounded hover:bg-gray-100">+</button>
-              <button onClick={resetZoom} className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300">Reset Zoom</button>
-            </div>
-
-            {/* Rotation */}
-            <div className="flex items-center gap-2">
-              <button onClick={rotateLeft} className="px-3 py-1 bg-white border rounded hover:bg-gray-100">↺</button>
-              <button onClick={rotateRight} className="px-3 py-1 bg-white border rounded hover:bg-gray-100">↻</button>
-              <button onClick={resetRotation} className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300">Reset</button>
-              <span className="text-sm text-gray-500 ml-2">{rotation}°</span>
-            </div>
-
-            {/* Page Navigation */}
-            <div className="flex items-center gap-3">
-              <button onClick={goToPrevPage} disabled={pageNumber <= 1} className="px-3 py-1 bg-white border rounded disabled:opacity-50">←</button>
-              <span className="text-sm">Page {pageNumber} of {numPages}</span>
-              <button onClick={goToNextPage} disabled={pageNumber >= (numPages || 1)} className="px-3 py-1 bg-white border rounded disabled:opacity-50">→</button>
-            </div>
-          </div>
-
-          {/* PDF Display */}
-          <div className="flex justify-center overflow-auto max-h-[700px] border bg-white rounded p-4">
-            <Document file={pdfBlobUrl} onLoadSuccess={onDocumentLoadSuccess}>
-              <Page 
-                pageNumber={pageNumber} 
-                scale={scale} 
-                rotate={rotation}
-                renderTextLayer={false}
-                renderAnnotationLayer={false}
-              />
-            </Document>
-          </div>
-        </div>
-      ) : (
-        <div className="h-96 flex items-center justify-center border-2 border-dashed border-gray-300 rounded">
-          <p className="text-gray-500">Select a drawing to view</p>
-        </div>
-      )}
     </div>
   );
 };
 
-export default PDFViewer;
+export default ProjectDetail;
