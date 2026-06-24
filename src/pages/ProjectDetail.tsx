@@ -52,8 +52,6 @@ const ProjectDetail: React.FC = () => {
     );
   };
 
-  const handleUploadComplete = () => {};
-
   const deleteDocument = async (docId: string) => {
     if (!window.confirm('Delete this file?')) return;
     await deleteDoc(doc(db, 'documents', docId));
