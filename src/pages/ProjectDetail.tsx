@@ -52,8 +52,6 @@ const ProjectDetail: React.FC = () => {
     );
   };
 
-  const handleUploadComplete = () => {};
-
   const deleteDocument = async (docId: string) => {
     if (!window.confirm('Delete this file?')) return;
     await deleteDoc(doc(db, 'documents', docId));
@@ -84,133 +82,137 @@ const ProjectDetail: React.FC = () => {
   };
 
   // Main AI Analysis Function
-  const analyzeWithAI = async () => {
-    if (selectedDocuments.length === 0) {
-      alert("Please select at least one drawing to analyze.");
+const analyzeWithAI = async () => {
+  if (selectedDocuments.length === 0) {
+    alert("Please select at least one drawing to analyze.");
+    return;
+  }
+
+  if (!OPENAI_API_KEY) {
+    alert("OpenAI API key is missing. Please add it to your .env file (local) or Netlify environment variables.");
+    return;
+  }
+
+  setAnalyzing(true);
+
+  try {
+    const selectedFiles = documents.filter(d => selectedDocuments.includes(d.id));
+    const imageContents: any[] = [];
+
+    // Convert first page of each selected PDF to image
+    for (const file of selectedFiles) {
+      try {
+        const base64Image = await convertPdfToImage(file.url);
+        imageContents.push({
+          type: "image_url",
+          image_url: { url: `data:image/jpeg;base64,${base64Image}` }
+        });
+      } catch (err) {
+        console.error("Failed to process:", file.fileName);
+      }
+    }
+
+    if (imageContents.length === 0) {
+      alert("Could not process any of the selected drawings.");
+      setAnalyzing(false);
       return;
     }
 
-    if (!OPENAI_API_KEY) {
-      alert("OpenAI API key is not configured. Please add VITE_OPENAI_API_KEY in Netlify.");
-      return;
-    }
+    const systemPrompt = `You are an expert New Zealand building compliance reviewer. 
+Analyze the attached architectural drawings for compliance issues related to the New Zealand Building Code, 
+NZS 3604, E2/AS1, fire safety, weathertightness, and common consent problems.
 
-    setAnalyzing(true);
-
-    try {
-      const selectedFiles = documents.filter(d => selectedDocuments.includes(d.id));
-      const imageContents: any[] = [];
-
-      for (const file of selectedFiles) {
-        try {
-          const base64Image = await convertPdfToImage(file.url);
-          imageContents.push({
-            type: "image_url",
-            image_url: {
-              url: `data:image/jpeg;base64,${base64Image}`
-            }
-          });
-        } catch (err) {
-          console.error("Failed to convert PDF:", file.fileName);
-        }
-      }
-
-      if (imageContents.length === 0) {
-        alert("Could not process any of the selected drawings.");
-        setAnalyzing(false);
-        return;
-      }
-
-      const prompt = `You are an expert New Zealand building compliance reviewer. Analyze the attached architectural drawings for compliance issues related to the New Zealand Building Code, NZS 3604, E2/AS1, fire safety, weathertightness, and common consent issues.
-
-Return your findings as a JSON array of tasks in this exact format:
+Return ONLY a valid JSON array in this exact format (no extra text):
 
 [
   {
-    "title": "Short clear task title",
-    "description": "Detailed explanation including relevant standard if known",
+    "title": "Clear, actionable task title",
+    "description": "Detailed explanation of the issue with relevant standard if known",
     "priority": "high" | "medium" | "low"
   }
-]
+]`;
 
-Only return valid JSON. Do not include any other text.`;
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt,
+          },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Please analyze these architectural drawings for NZ Building Code compliance issues." },
+              ...imageContents,
+            ],
+          },
+        ],
+        max_tokens: 2500,
+        temperature: 0.2,
+      }),
+    });
 
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: prompt },
-                ...imageContents
-              ]
-            }
-          ],
-          max_tokens: 2000,
-          temperature: 0.3
-        })
-      });
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
 
-      const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
-
-      if (!content) {
-        alert("AI did not return a valid response.");
-        setAnalyzing(false);
-        return;
-      }
-
-      // Try to parse JSON from the response
-      let tasks = [];
-      try {
-        const jsonMatch = content.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          tasks = JSON.parse(jsonMatch[0]);
-        }
-      } catch (e) {
-        console.error("Failed to parse AI response as JSON:", content);
-        alert("AI returned an invalid format. Please try again.");
-        setAnalyzing(false);
-        return;
-      }
-
-      if (!Array.isArray(tasks) || tasks.length === 0) {
-        alert("AI analysis complete. No significant issues were flagged.");
-        setAnalyzing(false);
-        return;
-      }
-
-      // Save tasks to Firestore
-      const today = new Date();
-      for (const task of tasks) {
-        await addDoc(collection(db, 'tasks'), {
-          title: task.title,
-          description: task.description || "",
-          priority: task.priority || "medium",
-          status: "Open",
-          projectId: id,
-          dueDate: new Date(today.getTime() + 10 * 86400000).toISOString().split('T')[0],
-          createdAt: new Date(),
-        });
-      }
-
-      alert(`AI Analysis complete! ${tasks.length} tasks were created.`);
-      setSelectedDocuments([]);
-      window.location.reload();
-
-    } catch (error) {
-      console.error("AI Analysis error:", error);
-      alert("An error occurred during AI analysis. Please check the console.");
-    } finally {
+    if (!content) {
+      alert("AI did not return a response. Please try again.");
       setAnalyzing(false);
+      return;
     }
-  };
+
+    // Extract JSON from response
+    let tasks = [];
+    try {
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        tasks = JSON.parse(jsonMatch[0]);
+      }
+    } catch (e) {
+      console.error("Failed to parse AI response:", content);
+      alert("AI returned an invalid format. Please try again.");
+      setAnalyzing(false);
+      return;
+    }
+
+    if (!Array.isArray(tasks) || tasks.length === 0) {
+      alert("AI analysis complete. No significant compliance issues were identified.");
+      setAnalyzing(false);
+      setSelectedDocuments([]);
+      return;
+    }
+
+    // Save tasks to Firestore
+    const today = new Date();
+    for (const task of tasks) {
+      await addDoc(collection(db, "tasks"), {
+        title: task.title,
+        description: task.description || "",
+        priority: task.priority || "medium",
+        status: "Open",
+        projectId: id,
+        dueDate: new Date(today.getTime() + 10 * 86400000).toISOString().split("T")[0],
+        createdAt: new Date(),
+      });
+    }
+
+    alert(`AI Analysis complete! ${tasks.length} tasks have been created.`);
+    setSelectedDocuments([]);
+    window.location.reload();
+
+  } catch (error) {
+    console.error("AI Analysis error:", error);
+    alert("An error occurred during AI analysis. Check the console for details.");
+  } finally {
+    setAnalyzing(false);
+  }
+};
 
   if (loading) return <div className="p-8">Loading project...</div>;
 
